@@ -3,20 +3,31 @@ import alarms.*;
 
 import javax.swing.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static java.lang.Thread.sleep;
+import static javax.swing.JOptionPane.showMessageDialog;
 
 public class With_Seconds_Clock extends Basic_Clock{
     int seconds = 0;
     JTextField s;
-    List<AlarmNote> Alarms = new ArrayList<>();
+    Comparator<AlarmNote> acomp = new Alarm_Compare().thenComparing(new Al_Comp_Min());
+    TreeSet<AlarmNote> alarms = new TreeSet(acomp);
     String type = "With_Seconds";
 
 
-    public  With_Seconds_Clock(JTextField h, JTextField m,JTextField s){
+    public  With_Seconds_Clock(JTextField h, JTextField m, JTextField s, AtomicBoolean al,AtomicBoolean pau){
         this.h = h;
         this.m = m;
         this.s = s;
+        this.al = al;
+        this.pau = pau;
     }
 
+    @Override
+    public void addToSet(int hrs,int mins){
+        alarms.add(new AlarmNote(hrs,mins));
+    }
 
     @Override
     public void set_time(){
@@ -121,7 +132,43 @@ public class With_Seconds_Clock extends Basic_Clock{
     }
     @Override
     public void run() {
-        new Thread(() -> tick()).start();
+        System.out.println("With_seconds is running");
+        while(this.al.get()) {
+            this.tick();
+            try {
+                sleep(1000);
+            } catch (InterruptedException e) {
+                //e.printStackTrace();
+                //System.out.println("Thread interrupted");
+            }
+            this.h.setText(Integer.toString(hours));
+            this.m.setText(Integer.toString(minutes));
+            this.s.setText(Integer.toString(seconds));
+            //System.out.println(currentThread());
+            //currentThread().interrupt();
+            //System.out.println("ALARMMMM");
+            //Thread check = new Thread(this) {
+            if(!alarms.isEmpty())
+                for(AlarmNote val : alarms)
+                    if (val.get_hour() == this.hours && val.get_minutes() == this.minutes && !val.get_status().get()) {
+                        val.get_status().set(true);
+                        System.out.println("ALARMMMM");
+                        Thread alarmm2 = new Thread() {
+                            public void run() {
+                                showMessageDialog(null, "Alarm!");
+                            }
+                        };
+                        alarmm2.start();
+                    }
+            //currentThread().interrupted();
+        }
+        if(!this.pau.get()) {
+            System.out.println("Stop the with_seconds clock");
+            this.h.setText(Integer.toString(0));
+            this.m.setText(Integer.toString(0));
+            this.s.setText(Integer.toString(0));
+        }
+
     }
 }
 

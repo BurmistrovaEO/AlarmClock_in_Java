@@ -2,11 +2,11 @@ package clocks;
 import alarms.*;
 
 import javax.swing.*;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.Thread.*;
+import static javax.swing.JOptionPane.showMessageDialog;
 
 public class Basic_Clock implements Clock, Runnable{
     int price;
@@ -16,17 +16,28 @@ public class Basic_Clock implements Clock, Runnable{
 
     JTextField h;
     JTextField m;
+    AtomicBoolean al;
+    AtomicBoolean pau;
+    //AtomicBoolean alR;
 
-    public  Basic_Clock(JTextField h, JTextField m){
+    public  Basic_Clock(JTextField h, JTextField m, AtomicBoolean al,AtomicBoolean pau){
         this.h = h;
         this.m = m;
+        this.al = al;
+        this.pau = pau;
+        //this.alR = alR;
     }
 
     int hours = 0;
     int minutes = 0;
     int tmp_seconds=0;
+    int i = -1;
 
-    List<AlarmNote> Alarms = new ArrayList<>();
+    Comparator<AlarmNote> acomp = new Alarm_Compare().thenComparing(new Al_Comp_Min());
+    public TreeSet<AlarmNote> alarms = new TreeSet(acomp);
+    //Iterator<AlarmNote> value = alarms.iterator();
+
+    //AlarmNote an;
 
     public Basic_Clock() {
     }
@@ -37,6 +48,10 @@ public class Basic_Clock implements Clock, Runnable{
         this.model_name = m_name;
     }
 
+    @Override
+    public void addToSet(int hrs,int mins){
+        alarms.add(new AlarmNote(hrs,mins));
+    }
     @Override
     public int get_price(){
         return this.price;
@@ -59,6 +74,12 @@ public class Basic_Clock implements Clock, Runnable{
         System.out.print("Minutes: ");
         System.out.println(this.minutes);
     }
+
+    @Override
+    public void sort_on_add(){
+
+    }
+
     @Override
     public void change_time(){
         int hrs,mins;
@@ -129,16 +150,40 @@ public class Basic_Clock implements Clock, Runnable{
     @Override
     public void run() {
         System.out.println("Is running");
-        while(true) {
+        while(this.al.get()) {
             this.tick();
             try {
                 sleep(1000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+                //System.out.println("Thread interrupted");
             }
             this.h.setText(Integer.toString(hours));
             this.m.setText(Integer.toString(minutes));
+            //System.out.println(currentThread());
+            //currentThread().interrupt();
+            //System.out.println("ALARMMMM");
+            //Thread check = new Thread(this) {
+            if(!alarms.isEmpty())
+                for(AlarmNote val : alarms)
+                    if (val.get_hour() == this.hours && val.get_minutes() == this.minutes && !val.get_status().get()) {
+                        val.get_status().set(true);
+                        System.out.println("ALARMMMM");
+                        Thread alarmm = new Thread() {
+                            public void run() {
+                                showMessageDialog(null, "Alarm!");
+                            }
+                        };
+                        alarmm.start();
+                    }
+            //currentThread().interrupted();
         }
+        if(!this.pau.get()) {
+            System.out.println("Stop the clock");
+            this.h.setText(Integer.toString(0));
+            this.m.setText(Integer.toString(0));
+        }
+
     }
 }
 
